@@ -22,3 +22,10 @@ Use [Binami Order Book API](https://github.com/binance/binance-spot-api-docs/blo
 You'll need to compare Binance and Coinbase order books and compute the best execution price for the given amount of Bitcoin we want to buy. (You can assume that 1 USDT = 1 USD at all time.)
 
 [Bonus] Add a third exchange to compare with Binance and Coinbase.
+
+
+
+```
+npm install express node-fetch
+npm install --save-dev @types/node @types/express
+```
