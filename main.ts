@@ -6,7 +6,7 @@ const port = 4000;
 
 const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
-const retry = async <T>(fn: () => Promise<T>, retries: number = 3, delayTime: number = 1000): Promise<T> => {
+const retryPromise = async <T>(fn: () => Promise<T>, retries: number = 3, delayTime: number = 1000): Promise<T> => {
   let attempt = 0;
   while (attempt < retries) {
     try {
@@ -66,7 +66,29 @@ const kraken: Exchange = {
 
 const exchanges: Exchange[] = [binance, coinbase, kraken];
 
-const getBestExecutionPrice = async (amount: number): Promise<{ btcAmount: number; usdAmount: number; exchange: string }> => {
+const getBestExecutionPrice = async (amount: number): Promise<{ exchange: string, cost: number; price: number;  }> => {
+  const orderBooks: OrderBook[] = await Promise.all(
+    exchanges.map((exchange) => retryPromise(exchange.fetchOrderBook))
+  );
+  const executionPrices: { exchange: string; cost: number; amount: number }[] = [];
+  for (const orderBook of orderBooks) {
+    let remainingAmount = amount;
+    let totalPrice = 0;
+    for (const [price, size] of orderBook.bids) {
+      const sizeNumber = parseFloat(size);
+      const priceNumber = parseFloat(price);
+      if (remainingAmount > sizeNumber) {
+        totalCost += sizeNumber * priceNumber;
+        remainingAmount -= sizeNumber;
+      } else {
+        totalCost += remainingAmount * priceNumber;
+        remainingAmount = 0;
+        break;
+      }
+    }
+    executionPrices.push({ exchange: exchanges[orderBooks.indexOf(orderBook)].name, cost: totalCost, amount: remainingAmount });
+  }
+/**
   const executionPrices = await Promise.all(exchanges.map(async (exchange) => {
     const orderBook = await exchange.fetchOrderBook();
     let remainingAmount = amount;
@@ -88,8 +110,8 @@ const getBestExecutionPrice = async (amount: number): Promise<{ btcAmount: numbe
 
     return { btcAmount: amount, usdAmount: totalCost, exchange: exchange.name };
   }));
-
-  return executionPrices.reduce((cheapest, current) => (current.usdAmount < cheapest.usdAmount ? current : cheapest));
+*/
+  return executionPrices.reduce((cheapest, current) => (current.cost < cheapest.cost ? current : cheapest));
 };
 
 app.get('/exchange-routing', async (req: Request, res: Response) => {
