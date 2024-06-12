@@ -74,7 +74,7 @@ const getBestExecutionPrice = async (amount: number): Promise<{ exchange: string
   for (const orderBook of orderBooks) {
     let remainingAmount = amount;
     let totalPrice = 0;
-    for (const [price, size] of orderBook.bids) {
+    for (const [price, size] of orderBook.asks) {
       const sizeNumber = parseFloat(size);
       const priceNumber = parseFloat(price);
       if (remainingAmount > sizeNumber) {
